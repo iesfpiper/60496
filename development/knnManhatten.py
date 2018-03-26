@@ -1,21 +1,31 @@
-
+#collect script timing information for fun
 from datetime import datetime as dt
-#****DATA PROCESSING
 beginning=dt.now()
-#Define function
+
+
+#****DATA PROCESSING
+
+#**function sliceData(low, high)
+#    - This function will divide the sampleData and sampleClass arrays based on 
+#      the sampleMeta array and a range of samples defined in the parameters
+#    - For each user, 8 sessions were conducted where 50 samples were collected
+#      per session, resulting a total of 400 samples per user low and high 
+#      refer to the range of samples from 1 to 400
+#    - This function takes two indices, high and low and 
+#      returns samples in [low, high] for each user
 def sliceData(low, high):
     dataArr=sampleData[(((((sampleMeta[:,0]-1)*50 + sampleMeta[:,1]) >=low) & (((sampleMeta[:,0]-1)*50 + sampleMeta[:,1]) <=high)))]
     classArr=sampleClass[(((((sampleMeta[:,0]-1)*50 + sampleMeta[:,1]) >=low) & (((sampleMeta[:,0]-1)*50 + sampleMeta[:,1]) <=high)))]
     return dataArr, classArr
 
+#define constants
+PROJECT_ROOT = 'D:\\Data\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
+#PROJECT_ROOT = 'K:\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
+DATASET_PATH = [PROJECT_ROOT + '\\datasets\\DSL-StrongPasswordData.csv']
+
 import pandas as pd
-#projectRoot = 'D:\\Data\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
-projectRoot = 'K:\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
-
-datasetPath = [projectRoot + '\\datasets\\DSL-StrongPasswordData.csv']
-
 #read data into dataframe
-df = pd.read_csv(datasetPath[0])
+df = pd.read_csv(DATASET_PATH[0])
 
 #slice data and convert to numpy array
 # Note that in this section, the following suffexes are defined
@@ -35,50 +45,63 @@ sampleMeta = np.array(df.iloc[:,1:3]).astype('int')
 #classification
 sampleClass = np.array(df['subject']).astype('unicode_')
 sampleClassUnique = np.unique(sampleClass)
-
-#first 10 entries
-#modelData = sampleData[(sampleMeta[:,0]==1) & (sampleMeta[:,1] <= 10)]
-#modelClass = sampleClass[(sampleMeta[:,0]==1) & (sampleMeta[:,1] <= 10)]
-start=100
-modelData, modelClass = sliceData(1,start)
-for i in range(start+1,400,10):
+#for all samples 
+for s in range(10,391,10):
     
-   # modelData, modelClass = sliceData(i,i+9)
-    
-    #remaining entries
-    #testData = sampleData[(sampleMeta[:,0]==1) & (sampleMeta[:,1] > 10) | (sampleMeta[:,0]>1)]
-    #testClass = sampleClass[(sampleMeta[:,0]==1) & (sampleMeta[:,1] > 10) | (sampleMeta[:,0]>1)]
-    testData, testClass = sliceData(i,i+9)
+    # use initialSamplesSize as the number of samples to train the model with at first
+    initialSamplesSize=s
+    testSamplesSize=10
+    #select samples from the dataset for initial model training
+    modelData, modelClass = sliceData(1,initialSamplesSize)
     #****INITIATE MODEL
     from sklearn.neighbors import KNeighborsClassifier
-    #initialize model
-    knn = KNeighborsClassifier(n_neighbors=3, n_jobs=-1, metric='euclidean')
-    
-    #train model
-    knn.fit(modelData, modelClass)
-    
-    pred = knn.predict(testData)
-    sizeBefore=len(modelClass)
-    for j in range(len(pred)):
-        #print("pred",pred[j],' actual',testClass[j])
-        if(pred[j]==testClass[j]):
-            #print("pred",pred[j],' actual',testClass[j])
-            modelData=np.vstack((modelData,testData[j]))
-            modelClass=np.append(modelClass, testClass[j])
-    sizeAfter=len(modelClass)
+    # some values of k (k neighbors)
+    for k in range(1,10,2):
+        #initialize classifier
+        knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric='manhattan')
         
-    
-    from sklearn.metrics import accuracy_score
-    aScore = accuracy_score(testClass, pred)
-    print('iteration', i, 'added(avg)', (sizeAfter-sizeBefore)/51 ,'score', aScore)
-    #****KNN MANHATTEN TESTING
-    
-        #****FOR EACH SET OF 10 SAMPLES
-        # Incrementally take 10 new samples and test for proper classification
-        # If the sample is classified properly, add it to the model
-        # Discard the sample otherwise
-        # Get metrics
-        # Update Model
+        iterations=0
+        accuracy = 0
+        beginning=dt.now()
         
-    #bar=sliceData(low=1,high=1)
-print("time took ",dt.now()-beginning)
+        #****KNN MANHATTEN TESTING
+    
+        #****FOR EACH SET OF testSamplesSize SAMPLES
+        # - Incrementally take testSamplesSize new samples and test
+        #   for proper classification.
+        # - If the sample is classified properly, add it to the model
+        #   Discard the sample otherwise
+        # - Get metrics
+        # - Update Model
+            
+        for i in range(initialSamplesSize+1,400,testSamplesSize):
+            
+            #select test data
+            testData, testClass = sliceData(i,i + testSamplesSize - 1)
+            
+            #train model
+            knn.fit(modelData, modelClass)
+            
+            #run with test data
+            pred = knn.predict(testData)
+            
+            #store size of model before adding successful test samples
+            sizeBefore=len(modelClass)
+            #for each sample tested
+            for j in range(len(pred)):
+                #if classified correctly
+                if(pred[j]==testClass[j] ):
+                    #add test sample to model
+                    modelData=np.vstack((modelData,testData[j]))
+                    modelClass=np.append(modelClass, testClass[j])
+                    
+            #record size of model after adding successful test samples
+            sizeAfter=len(modelClass)
+                
+            #calculate accuracy score
+            from sklearn.metrics import accuracy_score
+            aScore = accuracy_score(testClass, pred)
+            #print('tested with samples ', i, ' through ', i+testSamplesSize-1, ' added', (sizeAfter-sizeBefore) ,'score', aScore)
+            iterations += 1
+            accuracy += aScore
+        print("k ", k, "Average accuracy", (accuracy/iterations), 'initial size', s, 'time', dt.now()-beginning)
