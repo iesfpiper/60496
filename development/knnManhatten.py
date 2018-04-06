@@ -5,6 +5,7 @@ beginning=dt.now()
 
 #****DATA PROCESSING
 
+
 #**function sliceData(low, high)
 #    - This function will divide the sampleData and sampleClass arrays based on 
 #      the sampleMeta array and a range of samples defined in the parameters
@@ -22,6 +23,11 @@ def sliceData(low, high):
 PROJECT_ROOT = 'D:\\Data\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
 #PROJECT_ROOT = 'K:\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
 DATASET_PATH = [PROJECT_ROOT + '\\datasets\\DSL-StrongPasswordData.csv']
+
+#**setup output
+f=open(PROJECT_ROOT+"\\output.txt","w+")
+f.write("ExperimentStart\r\n")
+
 
 import pandas as pd
 #read data into dataframe
@@ -60,9 +66,9 @@ for s in range(10,391,10):
         #initialize classifier
         knn = KNeighborsClassifier(n_neighbors=k, n_jobs=-1, metric='manhattan')
         
-        iterations=0
-        accuracy = 0
-        beginning=dt.now()
+        #iterations=0
+        #accuracy = 0
+        #beginning=dt.now()
         
         #****KNN MANHATTEN TESTING
     
@@ -84,24 +90,34 @@ for s in range(10,391,10):
             
             #run with test data
             pred = knn.predict(testData)
+            scor = knn.score(testData,testClass)
             
             #store size of model before adding successful test samples
-            sizeBefore=len(modelClass)
+          #  sizeBefore=len(modelClass)
             #for each sample tested
-            for j in range(len(pred)):
-                #if classified correctly
-                if(pred[j]==testClass[j] ):
-                    #add test sample to model
-                    modelData=np.vstack((modelData,testData[j]))
-                    modelClass=np.append(modelClass, testClass[j])
+            
+            for j in range(int(len(pred)/testSamplesSize)):
+                userScore = 0
+                for p in range(testSamplesSize):
+                    #if classified correctly
+                    if(pred[j*testSamplesSize + p]==testClass[j*testSamplesSize + p] ):
+                        #add test sample to model
+                        modelData=np.vstack((modelData,testData[j*testSamplesSize+p]))
+                        modelClass=np.append(modelClass, testClass[j*testSamplesSize+p])
+                        #print(j*testSamplesSize+p)
+                        userScore += 1
+               # print("k", k, "isize", s, "user", testClass[j*testSamplesSize + p], "i", i, "score", userScore)
+                f.write("k %d isize %d user %s i %d score %d\n" %( k, s, testClass[j*testSamplesSize + p], i, userScore))
                     
             #record size of model after adding successful test samples
-            sizeAfter=len(modelClass)
+         #   sizeAfter=len(modelClass)
                 
             #calculate accuracy score
             from sklearn.metrics import accuracy_score
-            aScore = accuracy_score(testClass, pred)
+            #aScore = accuracy_score(testClass, pred)
             #print('tested with samples ', i, ' through ', i+testSamplesSize-1, ' added', (sizeAfter-sizeBefore) ,'score', aScore)
-            iterations += 1
-            accuracy += aScore
-        print("k ", k, "Average accuracy", (accuracy/iterations), 'initial size', s, 'time', dt.now()-beginning)
+           # iterations += 1
+            #accuracy += aScore
+        #print("k ", k, "Average accuracy", (accuracy/iterations), 'initial size', s, 'time', dt.now()-beginning)
+f.write("ExperimentEnd")
+f.close()
