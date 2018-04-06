@@ -22,10 +22,10 @@ def sliceData(low, high):
 #define constants
 PROJECT_ROOT = 'D:\\Data\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
 #PROJECT_ROOT = 'K:\\Documents\\School\\Current\\60496\\Python\\Repository\\60496'
-DATASET_PATH = [PROJECT_ROOT + '\\datasets\\DSL-StrongPasswordData.csv']
+DATASET_PATH = [PROJECT_ROOT + '\\datasets\\DSL-StrongPasswordDataUUonly.csv']
 
 #**setup output
-f=open(PROJECT_ROOT+"\\output.txt","w+")
+f=open(PROJECT_ROOT+"\\output4.txt","w+")
 f.write("ExperimentStart\r\n")
 
 
@@ -118,6 +118,6 @@ for s in range(10,391,10):
             #print('tested with samples ', i, ' through ', i+testSamplesSize-1, ' added', (sizeAfter-sizeBefore) ,'score', aScore)
            # iterations += 1
             #accuracy += aScore
-        #print("k ", k, "Average accuracy", (accuracy/iterations), 'initial size', s, 'time', dt.now()-beginning)
+        print("k ", k, 'initial size', s)
 f.write("ExperimentEnd")
 f.close()
